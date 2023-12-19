@@ -38,13 +38,13 @@ def main():
     if rank == 0:
             intercomm = MPI.COMM_SELF.Spawn(sys.executable,
                                          args=['worker.py'],
-                                         maxprocs=num_machines)
+                                         maxprocs=11)
             
             for i in range(10):
                 slave_data_json = slave_information[i+1]
                 slave_data_str = json.dumps(slave_data_json)
                 
-                intercomm.send(slave_data_str, dest=i)
+                intercomm.send(slave_data_str, dest=i+1)
         
 
 if __name__ == '__main__':

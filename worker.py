@@ -16,12 +16,25 @@ def main():
     local_rank = local_comm.Get_rank()
     local_size = local_comm.Get_size()
     
+    if local_rank == 0:
+        exit(0)
+        
+    
+        
     json_str = parent_comm.recv(source=0)
     json_obj = json.loads(json_str)
     
-    print(f"------SLAVE {local_rank+1}------")
+    print(f"------SLAVE {local_rank}------")
     print(json_obj)
     print("---------------------------")
+    
+    if local_rank == 5:
+        local_comm.send("Hello from slave 5", dest=3)
+    elif local_rank == 3:
+        data = local_comm.recv(source=5)
+        print(f"Slave 3 received: {data}")
+        
+        
     
     
 
