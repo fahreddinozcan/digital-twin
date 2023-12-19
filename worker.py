@@ -2,11 +2,12 @@ from mpi4py import MPI
 import json
 
 class ProductionNode():
-    def __init__(self, node_id, parent_id, children, init_state):
+    def __init__(self, node_id, parent_id, children, init_state, init_product=None):
         self.node_id = node_id
         self.parent_id = parent_id
         self.children = children
         self.state = init_state
+        self.init_product = init_product
     
     def produce(self, preproducts):
         return preproducts.join('|')
@@ -24,22 +25,23 @@ def main():
     json_str = parent_comm.recv(source=0)
     node_data = json.loads(json_str)
     
-    production_node = ProductionNode(local_rank, node_data['parent_id'], node_data['children'], node_data['init_state'])
+    # production_node = ProductionNode(local_rank, node_data['parent_id'], node_data['children'], node_data['init_state'])
     
     
     print(f"------SLAVE {local_rank}------")
-    print(json.dumps(production_node.__dict__, indent=4))
+    # print(json.dumps(production_node.__dict__, indent=4))
+    print(node_data)
     print("---------------------------")
     
-    preproducts = []
-    for child_id in production_node.children:
-        product_of_child = local_comm.recv(source=child_id)
-        preproducts.append(product_of_child)
+    # preproducts = []
+    # for child_id in production_node.children:
+    #     product_of_child = local_comm.recv(source=child_id)
+    #     preproducts.append(product_of_child)
         
-    product = production_node.produce(preproducts)
+    # product = production_node.produce(preproducts)
     
-    if production_node.parent_id is not None:
-        local_comm.send(product, dest=production_node.parent_id)
+    # if production_node.parent_id is not None:
+    #     local_comm.send(product, dest=production_node.parent_id)
         
     
         
