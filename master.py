@@ -31,6 +31,16 @@ def main():
         
         # num_production_cycles wear_factors treshold slave_information[relevant]
         arguments = []
+        
+    node_data_template = {
+        'num_production_cycles': num_production_cycles,
+        'wear_factors': wear_factors,
+        'treshold': treshold,
+        'parent_id': None,
+        'children': [],
+        'init_state': None,
+    }
+    
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
@@ -42,9 +52,13 @@ def main():
             
             for i in range(10):
                 slave_data_json = slave_information[i+1]
-                slave_data_str = json.dumps(slave_data_json)
+                node_data_template['parent_id'] = slave_data_json['parent_id']
+                node_data_template['children'] = slave_data_json['children']
+                node_data_template['init_state'] = slave_data_json['init_state']
                 
-                intercomm.send(slave_data_str, dest=i+1)
+                node_data_str = json.dumps(node_data_template)
+                
+                intercomm.send(node_data_str, dest=i+1)
         
 
 if __name__ == '__main__':
