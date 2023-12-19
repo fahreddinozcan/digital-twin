@@ -10,7 +10,7 @@ class ProductionNode():
         self.init_product = init_product
     
     def produce(self, preproducts):
-        return preproducts.join('|')
+        return '|'.join(preproducts)
 
 
 def main():
@@ -25,23 +25,27 @@ def main():
     json_str = parent_comm.recv(source=0)
     node_data = json.loads(json_str)
     
-    # production_node = ProductionNode(local_rank, node_data['parent_id'], node_data['children'], node_data['init_state'])
+    production_node = ProductionNode(local_rank, node_data['parent_id'], node_data['children'], node_data['init_state'], node_data['init_product'])
     
     
-    print(f"------SLAVE {local_rank}------")
+    # print(f"------SLAVE {local_rank}------")
     # print(json.dumps(production_node.__dict__, indent=4))
-    print(node_data)
-    print("---------------------------")
+    # print(node_data)
+    # print("---------------------------")
     
-    # preproducts = []
-    # for child_id in production_node.children:
-    #     product_of_child = local_comm.recv(source=child_id)
-    #     preproducts.append(product_of_child)
+    preproducts = []
+    if production_node.children:
+        for child_id in production_node.children:
+            product_of_child = local_comm.recv(source=child_id)
+            preproducts.append(product_of_child)
+    elif production_node.init_product:
+        preproducts.append(production_node.init_product)
         
-    # product = production_node.produce(preproducts)
+    product = production_node.produce(preproducts)
+    print(f"Slave {local_rank} produced: {product}")
     
-    # if production_node.parent_id is not None:
-    #     local_comm.send(product, dest=production_node.parent_id)
+    if production_node.parent_id is not None:
+        local_comm.send(product, dest=production_node.parent_id)
         
     
         

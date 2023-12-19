@@ -20,6 +20,7 @@ def main():
             init_state = input_arr[2]
             slave_information[node_id] = {"parent_id": parent_id, "children": [], "init_state": init_state}
             slave_information[parent_id]["children"].append(node_id)
+            slave_information[node_id]["init_product"] = None
             leaf_nodes.append(node_id)
             if parent_id in leaf_nodes:
                 leaf_nodes.remove(parent_id)
@@ -41,7 +42,7 @@ def main():
         'parent_id': None,
         'children': [],
         'init_state': None,
-        # 'init_product': ''
+        'init_product': None,
     }
     
     comm = MPI.COMM_WORLD
@@ -58,8 +59,7 @@ def main():
                 node_data_template['parent_id'] = slave_data_json['parent_id']
                 node_data_template['children'] = slave_data_json['children']
                 node_data_template['init_state'] = slave_data_json['init_state']
-                ##TODO init product is problematic??? needs fix
-                # node_data_template['init_product'] = slave_data_json['init_product']
+                node_data_template['init_product'] = slave_data_json['init_product']
                 
                 node_data_str = json.dumps(node_data_template)
                 
