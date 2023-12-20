@@ -19,9 +19,6 @@ class ProductionNode():
         while(self.current_production_cycle <= NUM_PRODUCTION_CYCLES):
             preproducts = self.gather_products()
             product = self.produce(preproducts)
-            if self.node_id == 1:
-                # print(f"SENDING: {product}")
-                self.message_master("result", product)
             self.send_product(product)
             self.change_state()
             self.increment_production_cycle()
@@ -36,7 +33,7 @@ class ProductionNode():
                 product_of_child_json = json.loads(product_of_child_str)
                 products_of_children.append(product_of_child_json)
 
-            sorted(products_of_children, key=lambda k: k.get('node_id', 0))
+            sorted(products_of_children, key=lambda x: x.get('node_id', 0))
             return [child['product'] for child in products_of_children]
         else:
             return [self.init_product]
@@ -46,25 +43,25 @@ class ProductionNode():
         preproducts = ''.join(preproducts)
         if self.state == "add":
             return preproducts
-        if self.state == "enhance":
+        elif self.state == "enhance":
             self.wear(WEAR_FACTORS[0])
             return preproducts[0] + preproducts + preproducts[-1]
-        if self.state == "reverse":
+        elif self.state == "reverse":
             self.wear(WEAR_FACTORS[1])
             return preproducts[::-1]
-        if self.state == "chop":
+        elif self.state == "chop":
             self.wear(WEAR_FACTORS[2])
             if len(preproducts) > 1:
                 return preproducts[:-1]
             else:
                 return preproducts
-        if self.state == "trim":
+        elif self.state == "trim":
             self.wear(WEAR_FACTORS[3])
             if len(preproducts) > 2:
                 return preproducts[1:-1]
             else:
                 return preproducts
-        if self.state == "split":
+        elif self.state == "split":
             self.wear(WEAR_FACTORS[4])
             middle = math.ceil(len(preproducts) / 2)
             return preproducts[:middle]
@@ -73,19 +70,14 @@ class ProductionNode():
     def change_state(self):
         if self.state == "trim":
             self.state = "reverse"
-            return
-        if self.state == "reverse":
+        elif self.state == "reverse":
             self.state = "trim"
-            return
-        if self.state == "split":
+        elif self.state == "split":
             self.state = "chop"
-            return
-        if self.state == "chop":
+        elif self.state == "chop":
             self.state = "enhance"
-            return
-        if self.state == "enhance":
+        elif self.state == "enhance":
             self.state = "split"
-            return
 
     
     def wear(self, wear_factor):
@@ -102,12 +94,12 @@ class ProductionNode():
     
 
     def prepare_message(self, cost):
-        return f"{self.node_id}-{cost}-{self.current_production_cycle}"
+        return json.dumps({'node_id': self.node_id, 'cost': cost, 'cycle': self.current_production_cycle})
     
 
-    def message_master(self, message_type, message):  #TODO notify master with non-blocking send
-        data = json.dumps({'type': message_type, 'message': message, 'node_id': str(self.node_id), 'cycle': self.current_production_cycle})
-        self.parent_comm.isend(data, dest=0)
+    def message_master(self, message_type, message_str):
+        data_str = json.dumps({'type': message_type, 'message_str': message_str})
+        self.parent_comm.isend(data_str, dest=0)
 
 
     def reset_wear(self):
@@ -120,9 +112,9 @@ class ProductionNode():
 
     def send_product(self, product):
         if self.parent_id:
-            self.local_comm.send(json.dumps({'product': product, 'node_id': int(self.node_id)}), dest=self.parent_id)
+            self.local_comm.send(json.dumps({'product': product, 'node_id': self.node_id}), dest=self.parent_id)
         else:
-            self.message_master("result", product)
+            self.message_master("result", json.dumps({'product': product, 'cycle': self.current_production_cycle}))
     
 
 def main():

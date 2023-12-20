@@ -4,9 +4,9 @@ from mpi4py import MPI
 
 
 def main():
-    input_file_name = sys.argv[1]
-    output_file_name = sys.argv[2]
-    with open(input_file_name, 'r') as input_file:
+    input_file_path = sys.argv[1]
+    output_file_path = sys.argv[2]
+    with open(input_file_path, 'r') as input_file:
         num_machines = int(input_file.readline())
         num_production_cycles = int(input_file.readline())
         wear_factors = list(map(int, input_file.readline().split()))
@@ -59,11 +59,10 @@ def main():
         
         intercomm.send(node_data_str, dest=i+1)
     
+
     products = []
-    maintenance = []
-    product_messages = []
-    maintenance_messages = []
-    while len(product_messages) < num_production_cycles:
+    maintenance_logs = []
+    while True:
         if intercomm.Iprobe(source=MPI.ANY_SOURCE):
             status = MPI.Status()
 
@@ -71,31 +70,31 @@ def main():
             node = status.source
 
             req = intercomm.irecv(source=node, tag=status.tag)
-            data = req.wait()
-            message = json.loads(data)
-            if message['type']=='result':
+            data_str = req.wait()
+            data = json.loads(data_str)
+            if data['type']=='result':
+                message = json.loads(data['message_str'])
+                product, cycle = message['product'], message['cycle']
+                products.append((product, cycle))
+                if len(products) == num_production_cycles:
+                    break
                 
-                # print(message)
-                if message not in product_messages:
-                    product_messages.append(message)
-                    products.append(message['message'])
-                
-            elif message['type']=='maintenance':
-                if message not in maintenance_messages:
-                    maintenance_messages.append(message)
-                    maintenance.append(message['message'])
-                
+            elif data['type']=='maintenance':
+                message = json.loads(data['message_str'])
+                node_id, cost, cycle = message['node_id'], message['cost'], message['cycle']
+                maintenance_logs.append((node_id, cost, cycle))
+    
+    products.sort(key=lambda x: x[1])
+    maintenance_logs.sort(key=lambda x: (x[0], x[2], x[1]))
 
-    # for i in product_messages:
-    #     print(i['message'])
-    
-    def sorting_key(obj):
-        return tuple(map(int, obj.split('-')))
-    
-    maintenance = sorted(maintenance, key=sorting_key)
-    
-    # for i in maintenance:
-    #     print(i)
+    with open(output_file_path, 'w') as output_file:
+        for product, cycle in products:
+            output_file.write(f"{product}\n")
+        for i, (node_id, cost, cycle) in enumerate(maintenance_logs):
+            if i != len(maintenance_logs) - 1:
+                output_file.write(f"{node_id}-{cost}-{cycle}\n")
+            else:
+                output_file.write(f"{node_id}-{cost}-{cycle}")
         
     exit(0)
             
