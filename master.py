@@ -58,6 +58,48 @@ def main():
         node_data_str = json.dumps(node_data_template)
         
         intercomm.send(node_data_str, dest=i+1)
+    
+    products = []
+    maintenance = []
+    product_messages = []
+    maintenance_messages = []
+    while len(product_messages) < num_production_cycles:
+        if intercomm.Iprobe(source=MPI.ANY_SOURCE):
+            status = MPI.Status()
+
+            intercomm.Probe(source=MPI.ANY_SOURCE, status=status)
+            node = status.source
+
+            req = intercomm.irecv(source=node, tag=status.tag)
+            data = req.wait()
+            message = json.loads(data)
+            if message['type']=='result':
+                
+                # print(message)
+                if message not in product_messages:
+                    product_messages.append(message)
+                    products.append(message['message'])
+                
+            elif message['type']=='maintenance':
+                if message not in maintenance_messages:
+                    maintenance_messages.append(message)
+                    maintenance.append(message['message'])
+                
+
+    # for i in product_messages:
+    #     print(i['message'])
+    
+    def sorting_key(obj):
+        return tuple(map(int, obj.split('-')))
+    
+    maintenance = sorted(maintenance, key=sorting_key)
+    
+    # for i in maintenance:
+    #     print(i)
+        
+    exit(0)
+            
+    
         
 
 if __name__ == '__main__':

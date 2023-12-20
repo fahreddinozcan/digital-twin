@@ -19,6 +19,9 @@ class ProductionNode():
         while(self.current_production_cycle <= NUM_PRODUCTION_CYCLES):
             preproducts = self.gather_products()
             product = self.produce(preproducts)
+            if self.node_id == 1:
+                # print(f"SENDING: {product}")
+                self.message_master("result", product)
             self.send_product(product)
             self.change_state()
             self.increment_production_cycle()
@@ -103,7 +106,8 @@ class ProductionNode():
     
 
     def message_master(self, message_type, message):  #TODO notify master with non-blocking send
-        self.local_comm.send(json.dumps({'type': message_type, 'message': message}), dest=0)
+        data = json.dumps({'type': message_type, 'message': message, 'node_id': str(self.node_id), 'cycle': self.current_production_cycle})
+        self.parent_comm.isend(data, dest=0)
 
 
     def reset_wear(self):
