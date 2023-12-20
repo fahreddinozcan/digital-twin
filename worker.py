@@ -33,19 +33,30 @@ def main():
     # print(node_data)
     # print("---------------------------")
     
+    products_of_childs = []
     preproducts = []
     if production_node.children:
         for child_id in production_node.children:
-            product_of_child = local_comm.recv(source=child_id)
-            preproducts.append(product_of_child)
+            product_of_child_str = local_comm.recv(source=child_id)
+            product_of_child_json = json.loads(product_of_child_str)
+            products_of_childs.append(product_of_child_json)
+
+        sorted(products_of_childs, key=lambda k: k.get('node_id', 0))
+        preproducts = [child['product'] for child in products_of_childs]
+
     elif production_node.init_product:
         preproducts.append(production_node.init_product)
+        
+        
+    
         
     product = production_node.produce(preproducts)
     print(f"Slave {local_rank} produced: {product}")
     
     if production_node.parent_id is not None:
-        local_comm.send(product, dest=production_node.parent_id)
+        product_json = {'product': product, 'node_id': int(production_node.node_id)}
+        product_str = json.dumps(product_json)
+        local_comm.send(product_str, dest=production_node.parent_id)
         
     
         
